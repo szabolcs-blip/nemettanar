@@ -3,7 +3,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 const AGENT_ID = "agent_6001m4qv4hgceh9rm0v26d02m3k2";
-const VERSION = "v4";
+const VERSION = "v5";
 
 const $ = (id) => document.getElementById(id);
 const startBtn = $("start");
@@ -146,12 +146,14 @@ async function start() {
   }
 
   try {
-    await openSession("webrtc");
+    // WebSocket first: on this phone WebRTC never connects, so trying it first
+    // only cost a few seconds. WebRTC stays as the fallback.
+    await openSession("websocket");
   } catch (first) {
-    console.warn("webrtc failed, retrying with websocket", first);
+    console.warn("websocket failed, retrying with webrtc", first);
     setStatus("Kapcsolódás másik módon…");
     try {
-      await openSession("websocket");
+      await openSession("webrtc");
     } catch (second) {
       console.error(second);
       conversation = null;
