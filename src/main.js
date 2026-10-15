@@ -56,27 +56,55 @@ $("panel-close").addEventListener("click", () => {
   panel.hidden = true;
 });
 
-async function start() {
-  startBtn.disabled = true;
-  setStatus("Kapcsolódás…");
-  try {
-    // Ask for the microphone first so the permission prompt has a clear context.
-    await navigator.mediaDevices.getUserMedia({ audio: true });
-    conversation = await Conversation.startSession({
+function describeDisconnect(details) {
+  if (!details || details.reason === "user") return "A beszélgetés véget ért.";
+  const extra = [details.message, details.closeReason, details.closeCode].filter(Boolean).join(" – ");
+  if (details.reason === "agent") return "Lena bontotta a kapcsolatot." + (extra ? " (" + extra + ")" : "");
+  return "Megszakadt a kapcsolat." + (extra ? " (" + extra + ")" : "");
+}
+
+// Resolves once the session is stable (Lena said something, or it stayed up
+// for a few seconds); rejects if it fails or drops before that, so the caller
+// can retry with the other connection type.
+function openSession(connectionType) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let failed = false;
+    const ok = () => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    };
+    const fail = (err) => {
+      if (!settled) {
+        settled = true;
+        failed = true;
+        reject(err);
+      }
+    };
+    Conversation.startSession({
       agentId: AGENT_ID,
-      connectionType: "webrtc",
+      connectionType,
       clientTools: { show_content: showContent },
       onConnect: () => {
         setRunning(true);
         setStatus("Lena figyel – beszélj nyugodtan.");
+        setTimeout(ok, 8000);
       },
-      onDisconnect: () => {
+      onDisconnect: (details) => {
+        console.warn("disconnect", connectionType, details);
         conversation = null;
         setRunning(false);
-        setStatus("A beszélgetés véget ért.");
+        if (!settled && details?.reason !== "user") {
+          fail(new Error(describeDisconnect(details)));
+          return;
+        }
+        ok();
+        setStatus(describeDisconnect(details));
       },
-      onError: (message) => {
-        console.error(message);
+      onError: (message, context) => {
+        console.error("error", connectionType, message, context);
         setStatus("Hiba: " + message);
       },
       onModeChange: ({ mode: m }) => {
@@ -84,18 +112,46 @@ async function start() {
         if (conversation) setStatus(m === "speaking" ? "Lena beszél…" : "Lena figyel…");
       },
       onMessage: ({ message, role, source }) => {
+        ok();
         addLine(role || (source === "ai" ? "agent" : "user"), message);
       },
-    });
+    })
+      .then((c) => {
+        if (failed) c.endSession().catch(() => {});
+        else conversation = c;
+      })
+      .catch(fail);
+  });
+}
+
+async function start() {
+  startBtn.disabled = true;
+  setStatus("Kapcsolódás…");
+  try {
+    // Ask for the microphone first so the permission prompt has a clear context,
+    // then release it right away: on Android a still-open stream blocks the SDK.
+    const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+    probe.getTracks().forEach((t) => t.stop());
   } catch (err) {
     console.error(err);
-    conversation = null;
-    setRunning(false);
-    setStatus(
-      err && err.name === "NotAllowedError"
-        ? "A mikrofon nincs engedélyezve. Engedélyezd a böngészőben, és próbáld újra."
-        : "Nem sikerült kapcsolódni. Ellenőrizd az internetet, és próbáld újra."
-    );
+    setStatus("A mikrofon nincs engedélyezve. Engedélyezd a böngészőben, és próbáld újra.");
+    startBtn.disabled = false;
+    return;
+  }
+
+  try {
+    await openSession("webrtc");
+  } catch (first) {
+    console.warn("webrtc failed, retrying with websocket", first);
+    setStatus("Kapcsolódás másik módon…");
+    try {
+      await openSession("websocket");
+    } catch (second) {
+      console.error(second);
+      conversation = null;
+      setRunning(false);
+      setStatus("Nem sikerült kapcsolódni. " + (second?.message || first?.message || ""));
+    }
   } finally {
     startBtn.disabled = false;
   }
