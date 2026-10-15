@@ -3,16 +3,14 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 const AGENT_ID = "agent_6001m4qv4hgceh9rm0v26d02m3k2";
-const VERSION = "v6";
+const VERSION = "v7";
 
 const $ = (id) => document.getElementById(id);
 const startBtn = $("start");
 const muteBtn = $("mute");
 const statusEl = $("status");
 const transcript = $("transcript");
-const panel = $("panel");
-const panelTitle = $("panel-title");
-const panelBody = $("panel-body");
+const jumpBtn = $("jump");
 const canvas = $("orb");
 
 let conversation = null;
@@ -42,21 +40,72 @@ function addLine(role, text) {
   const msg = document.createElement("p");
   msg.textContent = text;
   row.append(who, msg);
-  transcript.append(row);
+  appendToTranscript(row);
+}
+
+// ---- Transcript follows the newest line unless the user scrolled up ----
+function scrollToEnd() {
   transcript.scrollTop = transcript.scrollHeight;
 }
 
-function showContent({ title, markdown } = {}) {
-  panelTitle.textContent = title || "";
-  panelBody.innerHTML = DOMPurify.sanitize(marked.parse(markdown || ""));
-  panel.hidden = false;
-  panel.scrollTop = 0;
-  return "A tartalom megjelent a képernyőn.";
+function atEnd() {
+  return transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight < 60;
 }
 
-$("panel-close").addEventListener("click", () => {
-  panel.hidden = true;
+// Decide before adding: if the reader was at the end, follow; if they had
+// scrolled up to read, leave them there and offer the jump button.
+function appendToTranscript(el, force = false) {
+  const follow = force || atEnd();
+  transcript.append(el);
+  if (follow) scrollToEnd();
+  else jumpBtn.hidden = false;
+}
+
+transcript.addEventListener("scroll", () => {
+  if (atEnd()) jumpBtn.hidden = true;
 });
+
+// The list also changes height when the orb shrinks or the toolbar moves.
+let wasAtEnd = true;
+transcript.addEventListener("scroll", () => (wasAtEnd = atEnd()));
+new ResizeObserver(() => {
+  if (wasAtEnd) scrollToEnd();
+}).observe(transcript);
+
+jumpBtn.addEventListener("click", () => {
+  jumpBtn.hidden = true;
+  transcript.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" });
+});
+
+// show_content: the table or list goes into the conversation as Lena's card,
+// so the transcript stays visible around it.
+function showContent({ title, markdown } = {}) {
+  const card = document.createElement("div");
+  card.className = "line agent content";
+  const who = document.createElement("span");
+  who.className = "who";
+  who.textContent = "Lena";
+  card.append(who);
+  if (title) {
+    const h = document.createElement("h3");
+    h.textContent = title;
+    card.append(h);
+  }
+  const body = document.createElement("div");
+  body.className = "rich";
+  body.innerHTML = DOMPurify.sanitize(marked.parse(markdown || ""));
+  // Wide tables scroll sideways inside the card instead of stretching the page.
+  body.querySelectorAll("table").forEach((t) => {
+    const wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+    t.replaceWith(wrap);
+    wrap.append(t);
+  });
+  card.append(body);
+  // Lena shows content because it was asked for, so always bring it into view.
+  appendToTranscript(card, true);
+  return "Der Inhalt wird jetzt im Gespräch angezeigt.";
+}
 
 // ---- Local storage (may be unavailable, e.g. in private mode) ----
 function load(key, fallback) {
@@ -377,3 +426,6 @@ if ("serviceWorker" in navigator) {
     .then((reg) => reg.update())
     .catch(() => {});
 }
+
+// Local testing hook only; never present on the published site.
+if (location.hostname === "localhost") window.__lena = { addLine, showContent, saveNotes };
