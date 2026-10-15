@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Némettanár</title>
+  <meta name="description" content="Német gyakorlás Lenával, hangon és írásban.">
+  <meta name="theme-color" content="#14161c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <h1>Lena</h1>
+      <p class="sub">a némettanárod</p>
+    </header>
+
+    <div class="stage">
+      <canvas id="orb" aria-hidden="true"></canvas>
+    </div>
+
+    <p id="status" class="status" role="status">Nyomd meg a gombot, és kezdjetek beszélgetni.</p>
+
+    <div class="controls">
+      <button id="start" class="primary">Beszélgetés indítása</button>
+      <button id="mute" class="secondary" hidden>Némítás</button>
+    </div>
+
+    <section id="transcript" class="transcript" aria-label="Felirat" aria-live="polite"></section>
+  </main>
+
+  <section id="panel" class="panel" hidden aria-labelledby="panel-title">
+    <div class="panel-head">
+      <h2 id="panel-title"></h2>
+      <button id="panel-close" class="close" aria-label="Bezárás">×</button>
+    </div>
+    <div id="panel-body" class="panel-body"></div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
