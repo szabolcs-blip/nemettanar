@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <main class="app">
@@ -38,7 +38,17 @@
       <button id="mute" class="secondary" hidden>Némítás</button>
     </div>
 
-    <section id="transcript" class="transcript" aria-label="Felirat" aria-live="polite"></section>
+    <div class="workspace">
+      <section id="board" class="board" hidden aria-labelledby="board-title">
+        <div class="board-head">
+          <h2 id="board-title"></h2>
+          <button id="board-toggle" class="chip" aria-expanded="true">Kicsinyítés</button>
+          <button id="board-close" class="close small" aria-label="Tábla letörlése">×</button>
+        </div>
+        <div id="board-body" class="rich board-body"></div>
+      </section>
+      <section id="transcript" class="transcript" aria-label="Felirat" aria-live="polite"></section>
+    </div>
     <button id="jump" class="jump" hidden aria-label="Ugrás a legújabb üzenetre">↓ Legújabb</button>
     <p id="version" class="version"></p>
   </main>
@@ -57,6 +67,6 @@
 
   <div id="toast" class="toast" role="status" hidden></div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

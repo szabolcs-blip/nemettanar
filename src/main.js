@@ -3,7 +3,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 const AGENT_ID = "agent_6001m4qv4hgceh9rm0v26d02m3k2";
-const VERSION = "v7";
+const VERSION = "v8";
 
 const $ = (id) => document.getElementById(id);
 const startBtn = $("start");
@@ -77,35 +77,59 @@ jumpBtn.addEventListener("click", () => {
   transcript.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" });
 });
 
-// show_content: the table or list goes into the conversation as Lena's card,
-// so the transcript stays visible around it.
-function showContent({ title, markdown } = {}) {
-  const card = document.createElement("div");
-  card.className = "line agent content";
-  const who = document.createElement("span");
-  who.className = "who";
-  who.textContent = "Lena";
-  card.append(who);
-  if (title) {
-    const h = document.createElement("h3");
-    h.textContent = title;
-    card.append(h);
-  }
-  const body = document.createElement("div");
-  body.className = "rich";
-  body.innerHTML = DOMPurify.sanitize(marked.parse(markdown || ""));
-  // Wide tables scroll sideways inside the card instead of stretching the page.
-  body.querySelectorAll("table").forEach((t) => {
+// ---- Board: show_content is written on a board that stays put while the
+// conversation scrolls next to it (below it on a phone, beside it when wide).
+const board = $("board");
+const boardTitle = $("board-title");
+const boardBody = $("board-body");
+const boardToggle = $("board-toggle");
+
+function renderMarkdown(markdown) {
+  const html = DOMPurify.sanitize(marked.parse(markdown || ""));
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  // Wide tables scroll sideways inside the board instead of stretching the page.
+  tmp.querySelectorAll("table").forEach((t) => {
     const wrap = document.createElement("div");
     wrap.className = "table-wrap";
     t.replaceWith(wrap);
     wrap.append(t);
   });
-  card.append(body);
-  // Lena shows content because it was asked for, so always bring it into view.
-  appendToTranscript(card, true);
-  return "Der Inhalt wird jetzt im Gespräch angezeigt.";
+  return tmp.childNodes;
 }
+
+function setBoardCollapsed(collapsed) {
+  board.classList.toggle("collapsed", collapsed);
+  boardToggle.textContent = collapsed ? "Kinyitás" : "Kicsinyítés";
+  boardToggle.setAttribute("aria-expanded", String(!collapsed));
+}
+
+function putOnBoard({ title, markdown }) {
+  boardTitle.textContent = title || "Tábla";
+  boardBody.replaceChildren(...renderMarkdown(markdown));
+  boardBody.scrollTop = 0;
+  board.hidden = false;
+  setBoardCollapsed(false);
+  document.body.classList.add("has-board");
+}
+
+function showContent({ title, markdown } = {}) {
+  const content = { title, markdown };
+  putOnBoard(content);
+  // A short marker in the conversation; tapping it puts that board back up.
+  const mark = document.createElement("button");
+  mark.className = "board-mark";
+  mark.textContent = "📋 A táblára írta: " + (title || "táblázat");
+  mark.addEventListener("click", () => putOnBoard(content));
+  appendToTranscript(mark);
+  return "Der Inhalt steht jetzt an der Tafel und bleibt dort sichtbar, während ihr sprecht.";
+}
+
+boardToggle.addEventListener("click", () => setBoardCollapsed(!board.classList.contains("collapsed")));
+$("board-close").addEventListener("click", () => {
+  board.hidden = true;
+  document.body.classList.remove("has-board");
+});
 
 // ---- Local storage (may be unavailable, e.g. in private mode) ----
 function load(key, fallback) {

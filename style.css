@@ -307,3 +307,112 @@ body.running .speed { display: none; }
 }
 .jump[hidden] { display: none; }
 .top, .stage, .status, .speed, .controls, .version { flex-shrink: 0; }
+
+/* ---- Board (show_content) ---- */
+.workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.workspace .transcript { margin-top: 0; }
+.board {
+  flex: 0 1 auto;
+  max-height: 55%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #1b2a22;           /* chalkboard green-black */
+  border: 1px solid #2f4a3b;
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.board[hidden] { display: none; }
+.board-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.board-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+.board-head .chip { padding: 6px 12px; font-size: 0.8rem; }
+.close.small { width: 32px; height: 32px; font-size: 1.1rem; }
+.board-body {
+  overflow-y: auto;
+  min-height: 0;
+  margin-top: 6px;
+}
+.board.collapsed .board-body { display: none; }
+.board .rich th { background: rgba(255, 255, 255, 0.07); }
+.board .rich th, .board .rich td { border-color: #36533f; }
+
+.board-mark {
+  align-self: flex-start;
+  background: var(--surface);
+  color: var(--accent);
+  border: 1px dashed var(--border);
+  padding: 7px 12px;
+  font-size: 0.85rem;
+}
+
+/* With a board up, the orb and header step back to give it room. */
+body.has-board .sub { display: none; }
+body.has-board #orb,
+body.has-board.running #orb { width: 64px; }
+body.has-board .status { margin: 2px 0 8px; font-size: 0.9rem; }
+body.has-board .speed { display: none; }
+body.has-board .controls button { padding: 10px 18px; }
+body.has-board .primary { min-width: 0; }
+
+/* Wide screens (tablet, phone in landscape): board on the left, talk on the right. */
+@media (min-width: 760px) {
+  body.has-board .app { max-width: 1100px; }
+  body.has-board .workspace { flex-direction: row; }
+  body.has-board .board { flex: 1 1 58%; max-height: none; }
+  body.has-board .transcript { flex: 1 1 42%; }
+}
+/* The board takes its natural height (up to ~60%); the talk gets what is left. */
+.workspace .transcript { flex: 1 1 0; min-height: 140px; }
+.board { flex: 0 0 auto; max-height: 60%; }
+body.has-board .top h1 { font-size: 1.25rem; }
+
+/* Wide screens (tablet, phone in landscape): the board fills the left side,
+   orb, controls and conversation share the right side. */
+@media (min-width: 760px) {
+  body.has-board .app {
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "board top"
+      "board stage"
+      "board status"
+      "board controls"
+      "board transcript"
+      "board version";
+    column-gap: 16px;
+  }
+  body.has-board .workspace { display: contents; }
+  body.has-board .board { grid-area: board; max-height: none; min-height: 0; }
+  body.has-board .transcript { grid-area: transcript; min-height: 0; margin-top: 8px; }
+  body.has-board .top { grid-area: top; }
+  body.has-board .stage { grid-area: stage; }
+  body.has-board .status { grid-area: status; }
+  body.has-board .controls { grid-area: controls; }
+  body.has-board .version { grid-area: version; }
+  body.has-board .speed { display: none; }
+}
+@media (min-width: 760px) and (max-height: 520px) {
+  body.has-board #orb,
+  body.has-board.running #orb { width: 44px; }
+  body.has-board .top h1 { font-size: 1.05rem; margin: 0; }
+  body.has-board .notes-open { padding: 5px 10px; }
+  body.has-board .version { display: none; }
+}
