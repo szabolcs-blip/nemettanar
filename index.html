@@ -11,11 +11,12 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <main class="app">
     <header class="top">
+      <button id="notes-open" class="chip notes-open">Jegyzetek</button>
       <h1>Lena</h1>
       <p class="sub">a némettanárod</p>
     </header>
@@ -25,6 +26,12 @@
     </div>
 
     <p id="status" class="status" role="status">Nyomd meg a gombot, és kezdjetek beszélgetni.</p>
+
+    <div id="speed" class="speed" role="group" aria-label="Lena tempója">
+      <button data-speed="0.7">Nagyon lassú</button>
+      <button data-speed="0.8">Lassú</button>
+      <button data-speed="0.95">Normál</button>
+    </div>
 
     <div class="controls">
       <button id="start" class="primary">Beszélgetés indítása</button>
@@ -43,6 +50,20 @@
     <div id="panel-body" class="panel-body"></div>
   </section>
 
-  <script src="app.js?v=5"></script>
+  <section id="notes" class="panel" hidden aria-labelledby="notes-title">
+    <div class="panel-head">
+      <h2 id="notes-title">Jegyzetek</h2>
+      <button id="notes-close" class="close" aria-label="Bezárás">×</button>
+    </div>
+    <div class="panel-body">
+      <p class="hint">Lena az utolsó 3 jegyzetet kapja meg minden beszélgetés elején.</p>
+      <div id="notes-list"></div>
+      <button id="notes-clear" class="secondary danger" hidden>Összes törlése</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="app.js?v=6"></script>
 </body>
 </html>

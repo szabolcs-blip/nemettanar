@@ -3,7 +3,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 const AGENT_ID = "agent_6001m4qv4hgceh9rm0v26d02m3k2";
-const VERSION = "v5";
+const VERSION = "v6";
 
 const $ = (id) => document.getElementById(id);
 const startBtn = $("start");
@@ -58,6 +58,130 @@ $("panel-close").addEventListener("click", () => {
   panel.hidden = true;
 });
 
+// ---- Local storage (may be unavailable, e.g. in private mode) ----
+function load(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function save(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Not persisted; the app keeps working for this visit.
+  }
+}
+
+// ---- Speaking speed ----
+const SPEEDS = { "0.7": "Nagyon lassú", "0.8": "Lassú", "0.95": "Normál" };
+let speed = load("lena.speed", "0.95");
+if (!SPEEDS[speed]) speed = "0.95";
+
+const speedButtons = document.querySelectorAll("#speed button");
+function renderSpeed() {
+  speedButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.speed === speed)));
+}
+speedButtons.forEach((b) =>
+  b.addEventListener("click", () => {
+    speed = b.dataset.speed;
+    save("lena.speed", speed);
+    renderSpeed();
+  })
+);
+renderSpeed();
+
+// ---- Notes: Lena saves them with save_notes, the last 3 are kept ----
+const notesSheet = $("notes");
+const notesList = $("notes-list");
+const toast = $("toast");
+
+function getNotes() {
+  const notes = load("lena.notes", []);
+  return Array.isArray(notes) ? notes : [];
+}
+
+function setNotes(notes) {
+  save("lena.notes", notes);
+  renderNotes();
+}
+
+function notesForLena() {
+  const notes = getNotes();
+  if (!notes.length) return "Noch keine Notizen.";
+  return notes.map((n) => `${n.date}: ${n.notes}`).join("\n\n");
+}
+
+function today() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+let toastTimer = 0;
+function showToast(text) {
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (toast.hidden = true), 2500);
+}
+
+function saveNotes({ notes } = {}) {
+  const text = String(notes || "").trim();
+  if (!text) return "Keine Notizen übergeben.";
+  setNotes([...getNotes(), { date: today(), notes: text }].slice(-3));
+  showToast("Jegyzet elmentve");
+  return "Notizen gespeichert.";
+}
+
+function renderNotes() {
+  const notes = getNotes();
+  notesList.replaceChildren();
+  $("notes-clear").hidden = !notes.length;
+  if (!notes.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "Még nincs jegyzet. Lena a beszélgetések végén ment ide összefoglalót.";
+    notesList.append(empty);
+    return;
+  }
+  // Newest first.
+  notes
+    .map((n, i) => ({ ...n, i }))
+    .reverse()
+    .forEach((n) => {
+      const item = document.createElement("article");
+      item.className = "note";
+      const head = document.createElement("div");
+      head.className = "note-head";
+      const date = document.createElement("span");
+      date.textContent = n.date;
+      const del = document.createElement("button");
+      del.className = "link";
+      del.textContent = "Törlés";
+      del.addEventListener("click", () => setNotes(getNotes().filter((_, j) => j !== n.i)));
+      head.append(date, del);
+      const body = document.createElement("p");
+      body.textContent = n.notes;
+      item.append(head, body);
+      notesList.append(item);
+    });
+}
+
+$("notes-open").addEventListener("click", () => {
+  renderNotes();
+  notesSheet.hidden = false;
+});
+$("notes-close").addEventListener("click", () => {
+  notesSheet.hidden = true;
+});
+$("notes-clear").addEventListener("click", () => {
+  if (confirm("Biztosan törlöd az összes jegyzetet?")) setNotes([]);
+});
+
 function describeDisconnect(details) {
   if (!details || details.reason === "user") return "A beszélgetés véget ért. [" + (details?.reason || "nincs ok") + "]";
   const ctx = details.context || {};
@@ -89,7 +213,9 @@ function openSession(connectionType) {
     Conversation.startSession({
       agentId: AGENT_ID,
       connectionType,
-      clientTools: { show_content: showContent },
+      clientTools: { show_content: showContent, save_notes: saveNotes },
+      overrides: { tts: { speed: Number(speed) } },
+      dynamicVariables: { previous_notes: notesForLena() },
       onConnect: () => {
         setRunning(true);
         setStatus("Lena figyel – beszélj nyugodtan.");
@@ -244,5 +370,10 @@ function draw() {
 requestAnimationFrame(draw);
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // updateViaCache "none" makes the browser check sw.js itself on every start,
+  // so a new release reaches the home-screen app without reinstalling.
+  navigator.serviceWorker
+    .register("sw.js", { updateViaCache: "none" })
+    .then((reg) => reg.update())
+    .catch(() => {});
 }

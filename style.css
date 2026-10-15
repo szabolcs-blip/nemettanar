@@ -185,3 +185,77 @@ body.running .primary {
   margin: 6px 0 0;
   opacity: 0.6;
 }
+
+.top { position: relative; }
+.chip {
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+.notes-open {
+  position: absolute;
+  right: 0;
+  top: 2px;
+}
+
+/* speed picker, only before the conversation starts */
+.speed {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.speed button {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 9px 12px;
+  font-size: 0.9rem;
+}
+.speed button[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+body.running .speed { display: none; }
+
+.hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 12px; }
+.empty { color: var(--muted); }
+.note {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.note p { margin: 6px 0 0; white-space: pre-wrap; }
+.note-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.link {
+  background: none;
+  color: var(--danger);
+  padding: 4px 0 4px 12px;
+  font-size: 0.85rem;
+}
+.danger { color: var(--danger); margin-top: 4px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+.toast[hidden] { display: none; }
