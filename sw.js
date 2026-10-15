@@ -1,6 +1,6 @@
 // Minimal service worker so the app is installable. Network first, cached
 // shell as a fallback; the conversation itself always needs the internet.
-const CACHE = "nemettanar-v8";
+const CACHE = "nemettanar-v9";
 const SHELL = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {

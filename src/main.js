@@ -3,7 +3,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 const AGENT_ID = "agent_6001m4qv4hgceh9rm0v26d02m3k2";
-const VERSION = "v8";
+const VERSION = "v9";
 
 const $ = (id) => document.getElementById(id);
 const startBtn = $("start");
@@ -149,23 +149,28 @@ function save(key, value) {
   }
 }
 
-// ---- Speaking speed ----
-const SPEEDS = { "0.7": "Nagyon lassú", "0.8": "Lassú", "0.95": "Normál" };
-let speed = load("lena.speed", "0.95");
-if (!SPEEDS[speed]) speed = "0.95";
+// ---- Tempo ----
+// ElevenLabs allows no TTS speed below 0.7, so the voice always runs at 0.7
+// and the chosen tempo goes to Lena as a variable; she paces herself by it.
+const TTS_SPEED = 0.7;
+const TEMPOS = ["kozepes", "lassu", "nagyon_lassu"];
+// Carry over the choice saved by the earlier speed-based picker.
+const OLD_SPEED_TO_TEMPO = { "0.95": "kozepes", "0.8": "lassu", "0.7": "nagyon_lassu" };
+let tempo = load("lena.tempo", OLD_SPEED_TO_TEMPO[load("lena.speed", "")] || "kozepes");
+if (!TEMPOS.includes(tempo)) tempo = "kozepes";
 
-const speedButtons = document.querySelectorAll("#speed button");
-function renderSpeed() {
-  speedButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.speed === speed)));
+const tempoButtons = document.querySelectorAll("#speed button");
+function renderTempo() {
+  tempoButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tempo === tempo)));
 }
-speedButtons.forEach((b) =>
+tempoButtons.forEach((b) =>
   b.addEventListener("click", () => {
-    speed = b.dataset.speed;
-    save("lena.speed", speed);
-    renderSpeed();
+    tempo = b.dataset.tempo;
+    save("lena.tempo", tempo);
+    renderTempo();
   })
 );
-renderSpeed();
+renderTempo();
 
 // ---- Notes: Lena saves them with save_notes, the last 3 are kept ----
 const notesSheet = $("notes");
@@ -287,8 +292,8 @@ function openSession(connectionType) {
       agentId: AGENT_ID,
       connectionType,
       clientTools: { show_content: showContent, save_notes: saveNotes },
-      overrides: { tts: { speed: Number(speed) } },
-      dynamicVariables: { previous_notes: notesForLena() },
+      overrides: { tts: { speed: TTS_SPEED } },
+      dynamicVariables: { previous_notes: notesForLena(), tempo },
       onConnect: () => {
         setRunning(true);
         setStatus("Lena figyel – beszélj nyugodtan.");
