@@ -177,3 +177,11 @@ body.running .primary {
   border-radius: 5px;
 }
 .panel-body strong { color: var(--accent); }
+
+.version {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.7rem;
+  margin: 6px 0 0;
+  opacity: 0.6;
+}

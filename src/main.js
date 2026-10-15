@@ -3,6 +3,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 const AGENT_ID = "agent_6001m4qv4hgceh9rm0v26d02m3k2";
+const VERSION = "v4";
 
 const $ = (id) => document.getElementById(id);
 const startBtn = $("start");
@@ -19,6 +20,7 @@ let mode = "listening";
 let muted = false;
 
 marked.setOptions({ gfm: true, breaks: true });
+document.getElementById("version").textContent = VERSION;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -57,8 +59,9 @@ $("panel-close").addEventListener("click", () => {
 });
 
 function describeDisconnect(details) {
-  if (!details || details.reason === "user") return "A beszélgetés véget ért.";
-  const extra = [details.message, details.closeReason, details.closeCode].filter(Boolean).join(" – ");
+  if (!details || details.reason === "user") return "A beszélgetés véget ért. [" + (details?.reason || "nincs ok") + "]";
+  const ctx = details.context || {};
+  const extra = [details.message, ctx.type, ctx.reason, details.closeReason, details.closeCode].filter(Boolean).join(" – ");
   if (details.reason === "agent") return "Lena bontotta a kapcsolatot." + (extra ? " (" + extra + ")" : "");
   return "Megszakadt a kapcsolat." + (extra ? " (" + extra + ")" : "");
 }
@@ -96,8 +99,11 @@ function openSession(connectionType) {
         console.warn("disconnect", connectionType, details);
         conversation = null;
         setRunning(false);
-        if (!settled && details?.reason !== "user") {
-          fail(new Error(describeDisconnect(details)));
+        if (!settled) {
+          // The SDK ends a half-started session as if the user hung up and only
+          // then rejects startSession with the real error; give that error a
+          // moment to arrive so it is the one we report.
+          setTimeout(() => fail(new Error(describeDisconnect(details))), 500);
           return;
         }
         ok();
@@ -150,7 +156,8 @@ async function start() {
       console.error(second);
       conversation = null;
       setRunning(false);
-      setStatus("Nem sikerült kapcsolódni. " + (second?.message || first?.message || ""));
+      const why = (e) => (e && (e.message || e.name || String(e))) || "ismeretlen";
+      setStatus("Nem sikerült kapcsolódni. 1) " + why(first) + " 2) " + why(second));
     }
   } finally {
     startBtn.disabled = false;
